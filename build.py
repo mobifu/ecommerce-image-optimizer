@@ -137,7 +137,7 @@ def cleanup_build_files():
 def create_pyinstaller_command(main_script, app_name):
     command = [
         "pyinstaller",
-        "--onefile",
+        "--onedir",
         "--name",
         app_name,
         "--windowed",  # Erstellt eine fensterbasierte Anwendung (ohne Konsole)
