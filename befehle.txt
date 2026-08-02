@@ -1,0 +1,9 @@
+.\venv\Scripts\activate
+
+pip install -r requirements.txt
+
+pip install pyinstaller
+
+pyinstaller --onefile --windowed --icon="favicon.ico" main.py
+
+python build.py

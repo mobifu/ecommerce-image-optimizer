@@ -1,0 +1,9 @@
+{
+    "comp_source": "C:/Users/mobif/Pictures/Screenshots",
+    "comp_dest": "C:/Users/mobif/Desktop/bildertest",
+    "webp_source": "C:/Users/mobif/Desktop/optiweb/OptiWeb/OptiWeb/Grafiken-Logo etc/Logo/png",
+    "webp_dest": "C:/Users/mobif/Desktop/test/optiweb/webp",
+    "tinypng_source": "Bilder_originalBilder_originalBilder_original",
+    "tinypng_dest": "Bilder_komprimiert",
+    "tinypng_api_key": ""
+}

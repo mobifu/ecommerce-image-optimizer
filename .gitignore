@@ -1,0 +1,15 @@
+# Build-Ausgaben & Executables
+dist/
+dist_*/
+build/
+*.exe
+
+# Python Cache & venv
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# IDE / System
+.vscode/
+.idea/

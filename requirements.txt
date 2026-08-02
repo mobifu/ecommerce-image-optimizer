@@ -1,0 +1,7 @@
+Pillow
+tinify
+customtkinter
+pre-commit
+ruff
+bandit
+pytest
