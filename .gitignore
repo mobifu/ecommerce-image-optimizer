@@ -52,3 +52,7 @@ start_venv.bat
 Bilder_original/
 Bilder_komprimiert/
 Bilder_webp/
+
+# Lokale Agent-Konfigurationen & Ignore-Dateien
+.agents/
+.agignore
