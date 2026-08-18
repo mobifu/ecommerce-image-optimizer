@@ -22,7 +22,7 @@ env/
 *.swp
 *.swo
 
-# Tests & Coverage
+# Tests, Linter & Coverage
 .coverage
 .coverage.*
 htmlcov/
@@ -34,6 +34,9 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
+# Logs
+*.log
+
 # Sensible Dateien & Secrets
 .env
 .env.*
@@ -41,18 +44,3 @@ settings.json
 *.bak
 *.key
 *.pem
-
-# Lokale Notizen & interne Skripte
-jpg in der Datenbank zu webp.txt
-befehle.txt
-sichern.py
-start_venv.bat
-
-# Lokale Verarbeitungsordner (Test-Bilder)
-Bilder_original/
-Bilder_komprimiert/
-Bilder_webp/
-
-# Lokale Agent-Konfigurationen & Ignore-Dateien
-.agents/
-.agignore
