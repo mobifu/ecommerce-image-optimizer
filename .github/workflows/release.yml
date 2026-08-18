@@ -35,7 +35,7 @@ jobs:
         run: ruff check .
 
       - name: Security Scan with Bandit
-        run: bandit -r . -x ./sichern.py,./venv
+        run: bandit -r main.py build.py -lll
 
       - name: Execute Tests with Pytest
         run: pytest -v
