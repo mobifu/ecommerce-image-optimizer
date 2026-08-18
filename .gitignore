@@ -42,9 +42,11 @@ settings.json
 *.key
 *.pem
 
-# Lokale Notizen & Skripte
+# Lokale Notizen & interne Skripte
 jpg in der Datenbank zu webp.txt
 befehle.txt
+sichern.py
+start_venv.bat
 
 # Lokale Verarbeitungsordner (Test-Bilder)
 Bilder_original/

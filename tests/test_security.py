@@ -8,12 +8,14 @@ import main
 
 
 def test_gitignore_ignores_sensitive_files():
-    """Stellt sicher, dass sensible Dateien wie .env und settings.json in .gitignore gelistet sind."""
+    """Stellt sicher, dass sensible und interne Dateien in .gitignore gelistet sind."""
     gitignore_path = Path(".gitignore").resolve()
     assert gitignore_path.exists()
     content = gitignore_path.read_text(encoding="utf-8")
     assert "settings.json" in content
     assert ".env" in content
+    assert "sichern.py" in content
+    assert "start_venv.bat" in content
     assert "*.key" in content or "*.pem" in content
 
 
