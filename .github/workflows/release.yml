@@ -59,9 +59,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyinstaller
+          pip install pyinstaller setuptools Cython
 
-      - name: Run Build Script (without Cython for Runner)
+      - name: Run Build Script
         run: python build.py --no-cython
 
       - name: Package Distributable & Calculate Checksums

@@ -7,9 +7,6 @@ import subprocess
 import time
 from datetime import datetime
 
-from Cython.Build import cythonize
-from setuptools import Extension, setup
-
 # Konfiguration
 SOURCE_DIR = "."  # Stammverzeichnis des Python-Codes
 MAIN_SCRIPT = "main.py"  # Hauptskript, das als Startpunkt für die Anwendung dient
@@ -48,6 +45,8 @@ def find_all_python_files(directory):
 
 # Cython-Erweiterungen erstellen
 def create_cython_extensions(python_files):
+    from setuptools import Extension
+
     extensions = []
     for py_file in python_files:
         # Normalisiere den Pfad, um führende './' oder '.\' zu entfernen
@@ -248,6 +247,9 @@ def run_build_process(main_script, app_name, use_cython=True):
 
             # 6. Setup-Funktion aufrufen, um die .c- und .so-Dateien zu erstellen
             logging.info("Starte Cython-Kompilierung...")
+            from Cython.Build import cythonize
+            from setuptools import setup
+
             setup(
                 name=app_name,
                 ext_modules=cythonize(extensions),
