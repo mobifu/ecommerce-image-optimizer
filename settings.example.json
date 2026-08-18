@@ -1,0 +1,9 @@
+{
+    "comp_source": "Bilder_original",
+    "comp_dest": "Bilder_komprimiert",
+    "webp_source": "Bilder_original",
+    "webp_dest": "Bilder_webp",
+    "tinypng_source": "Bilder_original",
+    "tinypng_dest": "Bilder_komprimiert",
+    "tinypng_api_key": ""
+}

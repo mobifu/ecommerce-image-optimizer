@@ -52,7 +52,7 @@ def test_create_pyinstaller_command():
 def test_kill_process_if_running_windows(mock_run, mock_system):
     build.kill_process_if_running("test_app")
     mock_run.assert_called_once()
-    args, kwargs = mock_run.call_args
+    args, _kwargs = mock_run.call_args
     assert args[0] == ["taskkill", "/F", "/IM", "test_app.exe"]
 
 
@@ -61,7 +61,7 @@ def test_kill_process_if_running_windows(mock_run, mock_system):
 def test_kill_process_if_running_linux(mock_run, mock_system):
     build.kill_process_if_running("test_app")
     mock_run.assert_called_once()
-    args, kwargs = mock_run.call_args
+    args, _kwargs = mock_run.call_args
     assert args[0] == ["pkill", "-f", "test_app"]
 
 

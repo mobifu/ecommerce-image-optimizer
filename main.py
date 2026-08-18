@@ -1,14 +1,26 @@
-import customtkinter as ctk
-import os
-import sys
-from tkinter import filedialog, messagebox
-import json
-from PIL import Image, ImageOps
-import tinify
 import io
+import json
+import os
+from pathlib import Path
+import sys
 import threading
+from tkinter import filedialog, messagebox
 import webbrowser
 from datetime import date
+
+import customtkinter as ctk
+from PIL import Image, ImageOps
+import tinify
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
+# Decompression Bomb Schutz (120 Megapixel Limit)
+Image.MAX_IMAGE_PIXELS = 120_000_000
 
 # Konstanten für Pfade und Einstellungen (können später in GUI geändert werden)
 DEFAULT_INPUT_FOLDER = "Bilder_original"
@@ -18,7 +30,7 @@ DEFAULT_OUTPUT_FOLDER = "Bilder_komprimiert"
 COMPANY_NAME = f"© Agentur Schölzke {date.today().year}"
 COMPANY_URL = "https://www.agentur-schoelzke.de"
 DONATE_URL = "https://paypal.me/kaischoelzke"
-VERSION_INFO = "v1.10.0"  # Hier können Sie Ihre individuelle Versionsnummer eintragen
+VERSION_INFO = "v1.10.0"
 
 
 class TextboxLogger:
@@ -200,7 +212,7 @@ class App(ctk.CTk):
             print(f"Fehler beim Erstellen der Thumbnails: {e}")
 
     def save_settings(self):
-        """Speichert die aktuellen Pfade und den API-Key in einer JSON-Datei."""
+        """Speichert die aktuellen Pfade und den API-Key sicher in einer JSON-Datei."""
         settings = {
             "comp_source": self.comp_source_entry.get(),
             "comp_dest": self.comp_dest_entry.get(),
@@ -211,54 +223,65 @@ class App(ctk.CTk):
             "tinypng_api_key": self.tinypng_api_key_entry.get(),
         }
         try:
-            with open("settings.json", "w") as f:
+            settings_path = Path("settings.json").resolve()
+            with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(settings, f, indent=4)
             print("Einstellungen gespeichert.")
         except Exception as e:
             print(f"Fehler beim Speichern der Einstellungen: {e}")
 
     def load_settings(self):
-        """Lädt Pfade und API-Key aus der JSON-Datei, falls vorhanden."""
+        """Lädt Pfade und API-Key aus Umgebungsvariablen oder der JSON-Datei."""
         try:
-            if os.path.exists("settings.json"):
-                with open("settings.json", "r") as f:
-                    # Zuerst alle Felder leeren, um doppelte Einträge zu vermeiden
-                    self.comp_source_entry.delete(0, "end")
-                    self.comp_dest_entry.delete(0, "end")
-                    self.webp_source_entry.delete(0, "end")
-                    self.webp_dest_entry.delete(0, "end")
-                    self.tinypng_source_entry.delete(0, "end")
-                    self.tinypng_dest_entry.delete(0, "end")
-                    self.tinypng_api_key_entry.delete(0, "end")
-
+            settings = {}
+            settings_path = Path("settings.json").resolve()
+            if settings_path.exists():
+                with open(settings_path, "r", encoding="utf-8") as f:
                     settings = json.load(f)
-                    self.comp_source_entry.insert(
-                        0, settings.get("comp_source", DEFAULT_INPUT_FOLDER)
-                    )
-                    self.comp_dest_entry.insert(
-                        0, settings.get("comp_dest", DEFAULT_OUTPUT_FOLDER)
-                    )
-                    self.webp_source_entry.insert(
-                        0, settings.get("webp_source", DEFAULT_INPUT_FOLDER)
-                    )
-                    self.webp_dest_entry.insert(
-                        0, settings.get("webp_dest", "Bilder_webp")
-                    )
-                    self.tinypng_source_entry.insert(
-                        0, settings.get("tinypng_source", DEFAULT_INPUT_FOLDER)
-                    )
-                    self.tinypng_dest_entry.insert(
-                        0, settings.get("tinypng_dest", DEFAULT_OUTPUT_FOLDER)
-                    )
-                    self.tinypng_api_key_entry.insert(
-                        0, settings.get("tinypng_api_key", "")
-                    )
 
-                    # Nach dem Laden die UI für den aktuell sichtbaren Tab aktualisieren
-                    # Wir warten einen kurzen Moment, damit das Fenster sicher aufgebaut ist.
-                    self.after(100, self.update_ui_for_current_tab)
+            # Zuerst alle Felder leeren, um doppelte Einträge zu vermeiden
+            self.comp_source_entry.delete(0, "end")
+            self.comp_dest_entry.delete(0, "end")
+            self.webp_source_entry.delete(0, "end")
+            self.webp_dest_entry.delete(0, "end")
+            self.tinypng_source_entry.delete(0, "end")
+            self.tinypng_dest_entry.delete(0, "end")
+            self.tinypng_api_key_entry.delete(0, "end")
 
-                print("Einstellungen geladen.")
+            # Bevorzuge Umgebungsvariablen falls gesetzt, sonst settings.json / Defaults
+            api_key = os.getenv("TINYPNG_API_KEY") or settings.get(
+                "tinypng_api_key", ""
+            )
+            comp_src = os.getenv("COMP_SOURCE_DIR") or settings.get(
+                "comp_source", DEFAULT_INPUT_FOLDER
+            )
+            comp_dst = os.getenv("COMP_DEST_DIR") or settings.get(
+                "comp_dest", DEFAULT_OUTPUT_FOLDER
+            )
+            webp_src = os.getenv("WEBP_SOURCE_DIR") or settings.get(
+                "webp_source", DEFAULT_INPUT_FOLDER
+            )
+            webp_dst = os.getenv("WEBP_DEST_DIR") or settings.get(
+                "webp_dest", "Bilder_webp"
+            )
+            tiny_src = os.getenv("TINYPNG_SOURCE_DIR") or settings.get(
+                "tinypng_source", DEFAULT_INPUT_FOLDER
+            )
+            tiny_dst = os.getenv("TINYPNG_DEST_DIR") or settings.get(
+                "tinypng_dest", DEFAULT_OUTPUT_FOLDER
+            )
+
+            self.comp_source_entry.insert(0, comp_src)
+            self.comp_dest_entry.insert(0, comp_dst)
+            self.webp_source_entry.insert(0, webp_src)
+            self.webp_dest_entry.insert(0, webp_dst)
+            self.tinypng_source_entry.insert(0, tiny_src)
+            self.tinypng_dest_entry.insert(0, tiny_dst)
+            self.tinypng_api_key_entry.insert(0, api_key)
+
+            # Nach dem Laden die UI für den aktuell sichtbaren Tab aktualisieren
+            self.after(100, self.update_ui_for_current_tab)
+            print("Einstellungen geladen.")
         except Exception as e:
             print(f"Fehler beim Laden der Einstellungen: {e}")
 

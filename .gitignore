@@ -2,14 +2,42 @@
 dist/
 dist_*/
 build/
+build_temp_*/
 *.exe
+*.spec
+*.pyd
+*.so
 
 # Python Cache & venv
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 venv/
 .venv/
+env/
 
-# IDE / System
+# IDE / Editor
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Tests & Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+
+# OS-spezifische Dateien
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Sensible Dateien & Secrets
+.env
+.env.*
+settings.json
+*.bak
+*.key
+*.pem
