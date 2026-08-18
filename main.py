@@ -1,16 +1,16 @@
 import io
 import json
 import os
-from pathlib import Path
 import sys
 import threading
-from tkinter import filedialog, messagebox
 import webbrowser
 from datetime import date
+from pathlib import Path
+from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
-from PIL import Image, ImageOps
 import tinify
+from PIL import Image, ImageOps
 
 try:
     from dotenv import load_dotenv
@@ -55,9 +55,7 @@ class App(ctk.CTk):
         super().__init__()
 
         self.title("Bildbearbeitungstool")
-        self.geometry(
-            "900x950"
-        )  # Fensterhöhe erhöht, um alle Elemente sichtbar zu machen
+        self.geometry("900x950")  # Fensterhöhe erhöht, um alle Elemente sichtbar zu machen
 
         # Grid-Layout für flexible Größenanpassung
         self.grid_rowconfigure(0, weight=1)
@@ -107,13 +105,11 @@ class App(ctk.CTk):
         self.log_textbox.pack(padx=10, pady=(10, 0), fill="x")
 
         # --- Button zum Leeren der Logs ---
-        log_button_frame = ctk.CTkFrame(
-            self.bottom_tabview.tab("Logs"), fg_color="transparent"
-        )
+        log_button_frame = ctk.CTkFrame(self.bottom_tabview.tab("Logs"), fg_color="transparent")
         log_button_frame.pack(fill="x", padx=10, pady=5)
-        ctk.CTkButton(
-            log_button_frame, text="Logs leeren", command=self.clear_logs
-        ).pack(side="right")
+        ctk.CTkButton(log_button_frame, text="Logs leeren", command=self.clear_logs).pack(
+            side="right"
+        )
 
         # --- stdout und stderr umleiten ---
         logger = TextboxLogger(self.log_textbox)
@@ -136,9 +132,7 @@ class App(ctk.CTk):
         footer_frame = ctk.CTkFrame(self, height=30, fg_color="transparent")
         footer_frame.pack(fill="x", side="bottom", padx=20, pady=(0, 10))
 
-        version_label = ctk.CTkLabel(
-            footer_frame, text=VERSION_INFO, text_color="gray60"
-        )
+        version_label = ctk.CTkLabel(footer_frame, text=VERSION_INFO, text_color="gray60")
         version_label.pack(side="left")
 
         company_label = ctk.CTkLabel(
@@ -174,9 +168,7 @@ class App(ctk.CTk):
                 info_label.configure(text="Ordner nicht gefunden", text_color="orange")
                 return
 
-            count = sum(
-                1 for f in os.listdir(folder_path) if f.lower().endswith(file_types)
-            )
+            count = sum(1 for f in os.listdir(folder_path) if f.lower().endswith(file_types))
             info_label.configure(text=f"{count} Bild(er) gefunden", text_color="gray60")
         except Exception as e:
             info_label.configure(text="Fehler beim Lesen", text_color="red")
@@ -193,9 +185,7 @@ class App(ctk.CTk):
             if not os.path.isdir(folder_path):
                 return
 
-            files = [
-                f for f in os.listdir(folder_path) if f.lower().endswith(file_types)
-            ]
+            files = [f for f in os.listdir(folder_path) if f.lower().endswith(file_types)]
 
             # Wir begrenzen die Vorschau auf z.B. 50 Bilder, um die Performance zu wahren
             for filename in files[:50]:
@@ -236,7 +226,7 @@ class App(ctk.CTk):
             settings = {}
             settings_path = Path("settings.json").resolve()
             if settings_path.exists():
-                with open(settings_path, "r", encoding="utf-8") as f:
+                with open(settings_path, encoding="utf-8") as f:
                     settings = json.load(f)
 
             # Zuerst alle Felder leeren, um doppelte Einträge zu vermeiden
@@ -249,9 +239,7 @@ class App(ctk.CTk):
             self.tinypng_api_key_entry.delete(0, "end")
 
             # Bevorzuge Umgebungsvariablen falls gesetzt, sonst settings.json / Defaults
-            api_key = os.getenv("TINYPNG_API_KEY") or settings.get(
-                "tinypng_api_key", ""
-            )
+            api_key = os.getenv("TINYPNG_API_KEY") or settings.get("tinypng_api_key", "")
             comp_src = os.getenv("COMP_SOURCE_DIR") or settings.get(
                 "comp_source", DEFAULT_INPUT_FOLDER
             )
@@ -261,9 +249,7 @@ class App(ctk.CTk):
             webp_src = os.getenv("WEBP_SOURCE_DIR") or settings.get(
                 "webp_source", DEFAULT_INPUT_FOLDER
             )
-            webp_dst = os.getenv("WEBP_DEST_DIR") or settings.get(
-                "webp_dest", "Bilder_webp"
-            )
+            webp_dst = os.getenv("WEBP_DEST_DIR") or settings.get("webp_dest", "Bilder_webp")
             tiny_src = os.getenv("TINYPNG_SOURCE_DIR") or settings.get(
                 "tinypng_source", DEFAULT_INPUT_FOLDER
             )
@@ -294,27 +280,21 @@ class App(ctk.CTk):
                 self.comp_source_info_label,
                 (".jpg", ".jpeg", ".png"),
             )
-            self.update_thumbnails(
-                self.comp_source_entry.get(), (".jpg", ".jpeg", ".png")
-            )
+            self.update_thumbnails(self.comp_source_entry.get(), (".jpg", ".jpeg", ".png"))
         elif current_tab_name == "WebP Konvertieren":
             self.update_image_count(
                 self.webp_source_entry.get(),
                 self.webp_source_info_label,
                 (".png", ".jpg", ".jpeg"),
             )
-            self.update_thumbnails(
-                self.webp_source_entry.get(), (".png", ".jpg", ".jpeg")
-            )
+            self.update_thumbnails(self.webp_source_entry.get(), (".png", ".jpg", ".jpeg"))
         elif current_tab_name == "TinyPNG":
             self.update_image_count(
                 self.tinypng_source_entry.get(),
                 self.tinypng_source_info_label,
                 (".png", ".jpg", ".jpeg"),
             )
-            self.update_thumbnails(
-                self.tinypng_source_entry.get(), (".png", ".jpg", ".jpeg")
-            )
+            self.update_thumbnails(self.tinypng_source_entry.get(), (".png", ".jpg", ".jpeg"))
 
     def on_closing(self):
         """Wird aufgerufen, wenn das Fenster geschlossen wird."""
@@ -350,9 +330,7 @@ class App(ctk.CTk):
         if is_source:
             info_label = ctk.CTkLabel(frame, text="")
             info_label.pack(anchor="w", padx=10, pady=(0, 5))
-            setattr(
-                self, info_label_attr_name, info_label
-            )  # Info-Label als Attribut speichern
+            setattr(self, info_label_attr_name, info_label)  # Info-Label als Attribut speichern
 
             def browse_command():
                 return self.select_folder(entry_widget, info_label, file_types)
@@ -377,9 +355,7 @@ class App(ctk.CTk):
         resize_frame = ctk.CTkFrame(parent_tab)
         resize_frame.pack(padx=20, pady=10, fill="x")
 
-        resize_check = ctk.CTkCheckBox(
-            resize_frame, text="Bildgröße anpassen (proportional)"
-        )
+        resize_check = ctk.CTkCheckBox(resize_frame, text="Bildgröße anpassen (proportional)")
         resize_check.pack(anchor="w", padx=10, pady=10)
         setattr(self, check_attr_name, resize_check)  # Checkbox als Attribut speichern
 
@@ -390,17 +366,13 @@ class App(ctk.CTk):
         width_entry = ctk.CTkEntry(size_inner_frame, width=80)
         width_entry.pack(side="left", padx=(5, 20))
         width_entry.insert(0, "1024")
-        setattr(
-            self, width_attr_name, width_entry
-        )  # Breite-Entry als Attribut speichern
+        setattr(self, width_attr_name, width_entry)  # Breite-Entry als Attribut speichern
 
         ctk.CTkLabel(size_inner_frame, text="Max. Höhe:").pack(side="left")
         height_entry = ctk.CTkEntry(size_inner_frame, width=80)
         height_entry.pack(side="left", padx=5)
         height_entry.insert(0, "1024")
-        setattr(
-            self, height_attr_name, height_entry
-        )  # Höhe-Entry als Attribut speichern
+        setattr(self, height_attr_name, height_entry)  # Höhe-Entry als Attribut speichern
 
     def create_compression_tab(self):
         """Erstellt den Tab für die Komprimierungsfunktion."""
@@ -415,9 +387,7 @@ class App(ctk.CTk):
             (".jpg", ".jpeg", ".png"),
             is_source=True,
         )
-        self._create_folder_selection_block(
-            tab, "Zielordner:", "comp_dest_entry", is_source=False
-        )
+        self._create_folder_selection_block(tab, "Zielordner:", "comp_dest_entry", is_source=False)
 
         # --- Einstellungen ---
         settings_frame = ctk.CTkFrame(tab)
@@ -441,9 +411,7 @@ class App(ctk.CTk):
         self.comp_quality_entry.bind("<Return>", self.update_quality_from_entry)
         self.comp_quality_entry.bind("<FocusOut>", self.update_quality_from_entry)
 
-        ctk.CTkLabel(settings_frame, text="%").grid(
-            row=0, column=3, padx=(0, 10), pady=10
-        )
+        ctk.CTkLabel(settings_frame, text="%").grid(row=0, column=3, padx=(0, 10), pady=10)
 
         # NEU: PNG Komprimierungsstufe
         ctk.CTkLabel(settings_frame, text="Kompression (nur PNG):").grid(
@@ -466,9 +434,7 @@ class App(ctk.CTk):
         self.comp_png_level_entry.bind("<Return>", self.update_png_level_from_entry)
         self.comp_png_level_entry.bind("<FocusOut>", self.update_png_level_from_entry)
 
-        ctk.CTkLabel(settings_frame, text="(0-9)").grid(
-            row=1, column=3, padx=(0, 10), pady=10
-        )
+        ctk.CTkLabel(settings_frame, text="(0-9)").grid(row=1, column=3, padx=(0, 10), pady=10)
 
         # --- Größenanpassung ---
         self._create_resize_options_block(
@@ -479,9 +445,7 @@ class App(ctk.CTk):
         def start_thread():
             try:
                 png_level = int(self.comp_png_level_entry.get())
-                quality = int(
-                    self.comp_quality_entry.get()
-                )  # Wert aus dem Entry-Feld nehmen
+                quality = int(self.comp_quality_entry.get())  # Wert aus dem Entry-Feld nehmen
                 max_size = (
                     int(self.comp_width_entry.get()),
                     int(self.comp_height_entry.get()),
@@ -584,9 +548,7 @@ class App(ctk.CTk):
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
 
-            files = [
-                f for f in os.listdir(input_folder) if f.lower().endswith(file_types)
-            ]
+            files = [f for f in os.listdir(input_folder) if f.lower().endswith(file_types)]
             if not files:
                 self.after(
                     0,
@@ -608,9 +570,7 @@ class App(ctk.CTk):
                     print(f"Fehler bei der Verarbeitung von {filename}: {e}")
                     # Bei TinyPNG-Fehlern, die eine Messagebox zeigen, hier abbrechen
                     if "tinify.Error" in str(type(e)):
-                        self.after(
-                            0, lambda: self.progress_bar.set(0)
-                        )  # Fortschritt zurücksetzen
+                        self.after(0, lambda: self.progress_bar.set(0))  # Fortschritt zurücksetzen
                         return
 
                 self.progress_bar.set((i + 1) / total_files)
@@ -640,9 +600,7 @@ class App(ctk.CTk):
     ):
         """Startet den lokalen Komprimierungsprozess für JPG und PNG."""
         if should_resize:
-            print(
-                f"Größenanpassung aktiviert. Maximale Größe: {max_size[0]}x{max_size[1]} Pixel."
-            )
+            print(f"Größenanpassung aktiviert. Maximale Größe: {max_size[0]}x{max_size[1]} Pixel.")
 
         def process(filename, in_folder, out_folder):
             img_path = os.path.join(in_folder, filename)
@@ -688,9 +646,7 @@ class App(ctk.CTk):
             (".png", ".jpg", ".jpeg"),
             is_source=True,
         )
-        self._create_folder_selection_block(
-            tab, "Zielordner:", "webp_dest_entry", is_source=False
-        )
+        self._create_folder_selection_block(tab, "Zielordner:", "webp_dest_entry", is_source=False)
 
         # --- Einstellungen (Qualität) ---
         settings_frame = ctk.CTkFrame(tab)
@@ -716,9 +672,7 @@ class App(ctk.CTk):
         self.webp_quality_entry.bind("<Return>", self.update_webp_quality_from_entry)
         self.webp_quality_entry.bind("<FocusOut>", self.update_webp_quality_from_entry)
 
-        ctk.CTkLabel(settings_frame, text="%").grid(
-            row=0, column=3, padx=(0, 10), pady=10
-        )
+        ctk.CTkLabel(settings_frame, text="%").grid(row=0, column=3, padx=(0, 10), pady=10)
 
         # --- Größenanpassung ---
         self._create_resize_options_block(
@@ -728,9 +682,7 @@ class App(ctk.CTk):
         # --- Threading-Wrapper für den Start ---
         def start_thread():
             try:
-                quality = int(
-                    self.webp_quality_entry.get()
-                )  # Wert aus dem Entry-Feld nehmen
+                quality = int(self.webp_quality_entry.get())  # Wert aus dem Entry-Feld nehmen
                 max_size = (
                     int(self.webp_width_entry.get()),
                     int(self.webp_height_entry.get()),
@@ -776,14 +728,10 @@ class App(ctk.CTk):
         except (ValueError, TypeError):  # Ignoriert ungültige Eingaben
             pass
 
-    def run_webp_conversion(
-        self, input_folder, output_folder, quality, should_resize, max_size
-    ):
+    def run_webp_conversion(self, input_folder, output_folder, quality, should_resize, max_size):
         """Führt die Logik aus umwandeln-webp.py aus."""
         if should_resize:
-            print(
-                f"Größenanpassung aktiviert. Maximale Größe: {max_size[0]}x{max_size[1]} Pixel."
-            )
+            print(f"Größenanpassung aktiviert. Maximale Größe: {max_size[0]}x{max_size[1]} Pixel.")
 
         def process(filename, in_folder, out_folder):
             file_path = os.path.join(in_folder, filename)
@@ -791,13 +739,9 @@ class App(ctk.CTk):
                 img = ImageOps.exif_transpose(img)  # EXIF-Drehung anwenden
                 if should_resize:
                     img.thumbnail(max_size)
-                output_file_path = os.path.join(
-                    out_folder, f"{os.path.splitext(filename)[0]}.webp"
-                )
+                output_file_path = os.path.join(out_folder, f"{os.path.splitext(filename)[0]}.webp")
                 img.save(output_file_path, "WEBP", quality=quality)
-                print(
-                    f"Konvertiert: {filename} -> {os.path.basename(output_file_path)}"
-                )
+                print(f"Konvertiert: {filename} -> {os.path.basename(output_file_path)}")
 
         self._run_image_processing(
             "WebP Konvertierung",
@@ -864,9 +808,7 @@ class App(ctk.CTk):
             anchor="w", padx=20, pady=20
         )
 
-    def start_tinypng_thread(
-        self, api_key, input_folder, output_folder, should_resize, max_size
-    ):
+    def start_tinypng_thread(self, api_key, input_folder, output_folder, should_resize, max_size):
         """Startet die TinyPNG-Komprimierung in einem separaten Thread, um die GUI nicht zu blockieren."""
         # Die Verarbeitung wird in einem neuen Thread gestartet
         thread = threading.Thread(
@@ -920,9 +862,7 @@ class App(ctk.CTk):
 
             try:
                 if should_resize:
-                    resized = source.resize(
-                        method="fit", width=max_size[0], height=max_size[1]
-                    )
+                    resized = source.resize(method="fit", width=max_size[0], height=max_size[1])
                     resized.to_file(output_path)
                 else:
                     source.to_file(output_path)

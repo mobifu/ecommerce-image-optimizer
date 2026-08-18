@@ -38,7 +38,7 @@ def test_settings_save_and_load(tmp_path, monkeypatch):
 
     assert (tmp_path / "settings.json").exists()
 
-    with open(tmp_path / "settings.json", "r") as f:
+    with open(tmp_path / "settings.json") as f:
         data = json.load(f)
 
     assert data["comp_source"] == "src_comp"
@@ -58,12 +58,8 @@ def test_update_image_count_and_processing(tmp_path):
     mock_info_label = MagicMock()
     app = MagicMock(spec=main.App)
 
-    main.App.update_image_count(
-        app, str(tmp_path), mock_info_label, (".jpg", ".jpeg", ".png")
-    )
-    mock_info_label.configure.assert_called_with(
-        text="2 Bild(er) gefunden", text_color="gray60"
-    )
+    main.App.update_image_count(app, str(tmp_path), mock_info_label, (".jpg", ".jpeg", ".png"))
+    mock_info_label.configure.assert_called_with(text="2 Bild(er) gefunden", text_color="gray60")
 
 
 def test_update_quality_and_png_sliders():

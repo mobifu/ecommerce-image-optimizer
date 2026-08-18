@@ -64,7 +64,7 @@ def test_settings_safe_path_resolution(tmp_path, monkeypatch):
     saved_file = (tmp_path / "settings.json").resolve()
     assert saved_file.exists()
 
-    with open(saved_file, "r", encoding="utf-8") as f:
+    with open(saved_file, encoding="utf-8") as f:
         data = json.load(f)
     assert data["tinypng_api_key"] == "valid_secret_key_123"
 

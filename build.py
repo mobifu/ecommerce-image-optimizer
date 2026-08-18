@@ -1,14 +1,14 @@
+import argparse  # NEU: Für Kommandozeilen-Argumente
+import logging
 import os
+import platform
 import shutil
 import subprocess
-from setuptools import Extension
-from Cython.Build import cythonize
-from setuptools import setup
-import logging
-import platform
 import time
 from datetime import datetime
-import argparse  # NEU: Für Kommandozeilen-Argumente
+
+from Cython.Build import cythonize
+from setuptools import Extension, setup
 
 # Konfiguration
 SOURCE_DIR = "."  # Stammverzeichnis des Python-Codes
@@ -21,9 +21,7 @@ BUILD_TEMP = f"build_temp_{TIMESTAMP}"
 DIST_DIR = f"dist_{TIMESTAMP}"
 
 # --- NEU: Kommandozeilen-Parser ---
-parser = argparse.ArgumentParser(
-    description="Build-Skript für die Bildbearbeitungsanwendung."
-)
+parser = argparse.ArgumentParser(description="Build-Skript für die Bildbearbeitungsanwendung.")
 parser.add_argument(
     "--no-cython",
     action="store_true",
@@ -31,9 +29,7 @@ parser.add_argument(
 )
 
 # Logging konfigurieren
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 # Funktion zum rekursiven Finden aller Python-Dateien
@@ -81,17 +77,11 @@ def kill_process_if_running(process_name):
         )
         return
 
-    logging.info(
-        f"Prüfe, ob '{process_name_os}' noch läuft und beende es bei Bedarf..."
-    )
+    logging.info(f"Prüfe, ob '{process_name_os}' noch läuft und beende es bei Bedarf...")
     try:
         # Die Ausgabe wird umgeleitet, um die Konsole nicht mit Meldungen zu füllen.
-        subprocess.run(
-            command, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-        logging.info(
-            f"Befehl zum Beenden von '{process_name_os}' ausgeführt. Warte kurz..."
-        )
+        subprocess.run(command, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        logging.info(f"Befehl zum Beenden von '{process_name_os}' ausgeführt. Warte kurz...")
         time.sleep(2)
     except FileNotFoundError:
         logging.warning(
@@ -110,14 +100,10 @@ def create_build_directories():
 # Alte Build-Dateien entfernen
 def cleanup_build_files():
     """Entfernt alle alten Build-Verzeichnisse und temporären Dateien."""
-    logging.info(
-        "Suche nach alten Build-Verzeichnissen (build, build_temp_*, dist_*)..."
-    )
+    logging.info("Suche nach alten Build-Verzeichnissen (build, build_temp_*, dist_*)...")
     # Lösche alle alten build_temp_* und dist_* Ordner
     for item in os.listdir(SOURCE_DIR):
-        if os.path.isdir(item) and (
-            item.startswith("build_temp_") or item.startswith("dist_")
-        ):
+        if os.path.isdir(item) and (item.startswith("build_temp_") or item.startswith("dist_")):
             try:
                 shutil.rmtree(item)
                 logging.info(f"Altes Verzeichnis entfernt: {item}")
@@ -151,9 +137,7 @@ def create_pyinstaller_command(main_script, app_name):
         BUILD_TEMP,
     ]
     if os.path.exists("public_key.pem"):
-        command.extend(
-            ["--add-data", "public_key.pem;."]
-        )  # Fügt den öffentlichen Schlüssel hinzu
+        command.extend(["--add-data", "public_key.pem;."])  # Fügt den öffentlichen Schlüssel hinzu
 
     # Fügt versteckte Importe hinzu, die für die Hardware-ID-Erkennung (oft via WMI) benötigt werden.
     # Dies ist ein häufiges Problem bei der Kompilierung mit PyInstaller.
@@ -196,9 +180,7 @@ def final_cleanup():
         logging.info(f"Spezifikationsdatei '{spec_file}' entfernt.")
 
     # NEU: Räume von Cython generierte .c und .pyd Dateien im Quellverzeichnis auf
-    logging.info(
-        "Suche nach von Cython generierten Dateien (.c, .pyd) zum Entfernen..."
-    )
+    logging.info("Suche nach von Cython generierten Dateien (.c, .pyd) zum Entfernen...")
     deleted_cython_files_count = 0
     # Schließe die dynamisch erstellten Ordner von der Suche aus
     excluded_cleanup_dirs = {
@@ -253,9 +235,7 @@ def run_build_process(main_script, app_name, use_cython=True):
 
             # Das Build-Skript selbst von der Kompilierung ausschließen
             script_name = os.path.basename(__file__)
-            python_files = [
-                f for f in python_files if os.path.basename(f) != script_name
-            ]
+            python_files = [f for f in python_files if os.path.basename(f) != script_name]
 
             if not python_files:
                 raise ValueError(
@@ -285,9 +265,7 @@ def run_build_process(main_script, app_name, use_cython=True):
         # 9. Finales Aufräumen
         final_cleanup()
 
-        logging.info(
-            f"Build abgeschlossen! Ausführbare Datei befindet sich in '{DIST_DIR}'."
-        )
+        logging.info(f"Build abgeschlossen! Ausführbare Datei befindet sich in '{DIST_DIR}'.")
 
     except Exception as e:
         logging.error(f"Build fehlgeschlagen: {e}")

@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge&logo=gnu)](LICENSE)
 [![CustomTkinter](https://img.shields.io/badge/GUI-CustomTkinter-blue?style=for-the-badge)](https://github.com/TomSchimansky/CustomTkinter)
-[![Tests](https://img.shields.io/badge/Tests-Pytest-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](https://pytest.org/)
+[![CI/CD](https://img.shields.io/github/actions/workflow/status/mobifu/ecommerce-image-optimizer/release.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/mobifu/ecommerce-image-optimizer/actions)
 [![Code Style](https://img.shields.io/badge/Code%20Style-Ruff-black?style=for-the-badge&logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
 [![Security](https://img.shields.io/badge/Security-Bandit-orange?style=for-the-badge)](https://github.com/PyCQA/bandit)
 
