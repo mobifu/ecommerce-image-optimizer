@@ -12,7 +12,6 @@ build_temp_*/
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
 venv/
 .venv/
 env/
@@ -25,6 +24,7 @@ env/
 
 # Tests & Coverage
 .coverage
+.coverage.*
 htmlcov/
 .pytest_cache/
 .ruff_cache/
@@ -41,3 +41,12 @@ settings.json
 *.bak
 *.key
 *.pem
+
+# Lokale Notizen & Skripte
+jpg in der Datenbank zu webp.txt
+befehle.txt
+
+# Lokale Verarbeitungsordner (Test-Bilder)
+Bilder_original/
+Bilder_komprimiert/
+Bilder_webp/
