@@ -30,7 +30,7 @@ DEFAULT_OUTPUT_FOLDER = "Bilder_komprimiert"
 COMPANY_NAME = f"© Agentur Schölzke {date.today().year}"
 COMPANY_URL = "https://www.agentur-schoelzke.de"
 DONATE_URL = "https://paypal.me/kaischoelzke"
-VERSION_INFO = "v1.10.0"
+VERSION_INFO = "v1.11.0"
 
 
 class TextboxLogger:
