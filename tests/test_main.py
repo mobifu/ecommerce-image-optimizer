@@ -244,3 +244,142 @@ def test_run_tinypng_compression_invalid_key(mock_showerror, mock_tinify, tmp_pa
     )
 
     mock_showerror.assert_called_once()
+
+
+def test_run_image_processing_corrupted_file(tmp_path):
+    """Stellt sicher, dass eine korrumpierte Bilddatei andere Dateien nicht blockiert."""
+    src_dir = tmp_path / "src"
+    dest_dir = tmp_path / "dest"
+    src_dir.mkdir()
+
+    valid_img = src_dir / "valid.jpg"
+    corrupt_img = src_dir / "corrupt.jpg"
+    Image.new("RGB", (30, 30), color="green").save(valid_img)
+    corrupt_img.write_bytes(b"BROKEN_NOT_AN_IMAGE_CONTENT")
+
+    processed = []
+
+    def mock_process(filename, in_f, out_f):
+        # Versucht mit PIL zu öffnen - wirft bei korrupten Bildern Exception
+        with Image.open((tmp_path / "src" / filename).resolve()) as img:
+            img.verify()
+        processed.append(filename)
+
+    app = MagicMock(spec=main.App)
+    app.progress_bar = MagicMock()
+    app.after = lambda ms, func: func() if callable(func) else None
+
+    main.App._run_image_processing(
+        app,
+        task_name="Corrupt Test",
+        input_folder=str(src_dir),
+        output_folder=str(dest_dir),
+        file_types=(".jpg",),
+        process_function=mock_process,
+        show_completion_message=False,
+    )
+
+    assert "valid.jpg" in processed
+    assert "corrupt.jpg" not in processed
+
+
+@patch("main.messagebox.showerror")
+def test_run_image_processing_nonexistent_source(mock_showerror, tmp_path):
+    """Prüft das Abfangen von nicht existierenden Quellordnern."""
+    app = MagicMock(spec=main.App)
+    app.progress_bar = MagicMock()
+    app.after = lambda ms, func: func() if callable(func) else None
+
+    main.App._run_image_processing(
+        app,
+        task_name="Nonexistent Folder Test",
+        input_folder=str(tmp_path / "does_not_exist"),
+        output_folder=str(tmp_path / "dest"),
+        file_types=(".jpg",),
+        process_function=MagicMock(),
+        show_completion_message=False,
+    )
+
+    mock_showerror.assert_called_once()
+
+
+@patch("main.messagebox.askyesno", return_value=False)
+def test_run_image_processing_same_folder_cancelled(mock_askyesno, tmp_path):
+    """Prüft Benutzerabbruch bei identischem Quell- und Zielordner."""
+    folder = tmp_path / "same"
+    folder.mkdir()
+
+    mock_process = MagicMock()
+    app = MagicMock(spec=main.App)
+
+    main.App._run_image_processing(
+        app,
+        task_name="Same Folder Test",
+        input_folder=str(folder),
+        output_folder=str(folder),
+        file_types=(".jpg",),
+        process_function=mock_process,
+        show_completion_message=False,
+    )
+
+    mock_askyesno.assert_called_once()
+    mock_process.assert_not_called()
+
+
+@patch("main.messagebox.showinfo")
+def test_run_compression_rgba_mode(mock_showinfo, tmp_path):
+    """Stellt sicher, dass RGBA-Dateien ohne Fehler als JPG komprimiert werden können."""
+    src_dir = tmp_path / "src"
+    dest_dir = tmp_path / "dest"
+    src_dir.mkdir()
+
+    rgba_file = src_dir / "transparent.jpg"
+    Image.new("RGBA", (80, 80), color=(255, 0, 0, 128)).save(rgba_file, "PNG")
+
+    app = MagicMock()
+    app._run_image_processing = (
+        lambda task_name,
+        in_folder,
+        out_folder,
+        exts,
+        proc,
+        show_completion_message=True: main.App._run_image_processing(
+            app, task_name, in_folder, out_folder, exts, proc, show_completion_message
+        )
+    )
+    app.after = lambda ms, func: func() if callable(func) else None
+
+    main.App.run_compression(
+        app,
+        input_folder=str(src_dir),
+        output_folder=str(dest_dir),
+        quality=80,
+        png_level=6,
+        should_resize=False,
+        max_size=(100, 100),
+    )
+
+    result_file = dest_dir / "transparent.jpg"
+    assert result_file.exists()
+    with Image.open(result_file) as img:
+        assert img.format == "JPEG"
+        assert img.mode == "RGB"
+
+
+def test_update_png_and_webp_slider_bounds():
+    """Testet Wertebereichs-Korrekturen für PNG- und WebP-Eingabefelder."""
+    app = MagicMock(spec=main.App)
+    app.comp_png_level_entry = MagicMock()
+    app.comp_png_level_slider = MagicMock()
+    app.webp_quality_entry = MagicMock()
+    app.webp_quality_slider = MagicMock()
+
+    # PNG Level über Maximalwert 9 -> korrigiert auf 9
+    app.comp_png_level_entry.get.return_value = "15"
+    main.App.update_png_level_from_entry(app, None)
+    app.comp_png_level_slider.set.assert_called_with(9)
+
+    # WebP Qualität über 100 -> korrigiert auf 100
+    app.webp_quality_entry.get.return_value = "150"
+    main.App.update_webp_quality_from_entry(app, None)
+    app.webp_quality_slider.set.assert_called_with(100)

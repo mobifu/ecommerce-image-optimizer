@@ -75,3 +75,31 @@ def test_invalid_settings_json_graceful_handling(tmp_path, monkeypatch):
 
     app = MagicMock(spec=main.App)
     main.App.load_settings(app)
+
+
+def test_decompression_bomb_caught_in_batch(tmp_path):
+    """Testet, dass DecompressionBombError im Verarbeitungs-Batch abgefangen wird."""
+    src_dir = tmp_path / "src"
+    dest_dir = tmp_path / "dest"
+    src_dir.mkdir()
+
+    bomb_file = src_dir / "bomb.jpg"
+    Image.new("RGB", (10, 10), color="black").save(bomb_file)
+
+    def mock_bomb_process(filename, in_f, out_f):
+        raise Image.DecompressionBombError("DecompressionBombError test triggered")
+
+    app = MagicMock(spec=main.App)
+    app.progress_bar = MagicMock()
+    app.after = lambda ms, func: func() if callable(func) else None
+
+    # Darf keine unbehandelte Exception werfen
+    main.App._run_image_processing(
+        app,
+        task_name="Bomb Test",
+        input_folder=str(src_dir),
+        output_folder=str(dest_dir),
+        file_types=(".jpg",),
+        process_function=mock_bomb_process,
+        show_completion_message=False,
+    )

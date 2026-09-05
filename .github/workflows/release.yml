@@ -34,8 +34,14 @@ jobs:
       - name: Linting with Ruff
         run: ruff check .
 
+      - name: Type Checking with Mypy
+        run: mypy main.py build.py
+
       - name: Security Scan with Bandit
         run: bandit -r main.py build.py -lll
+
+      - name: Dependency Security Audit
+        run: pip-audit -r requirements.txt
 
       - name: Execute Tests with Pytest
         run: pytest -v

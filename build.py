@@ -148,9 +148,8 @@ def create_pyinstaller_command(main_script, app_name):
         command.extend(["--add-data", "licensing_module;licensing_module"])
 
     # Icon ist eine Windows-spezifische Option
-    if platform.system() == "Windows":
-        if os.path.exists("favicon.ico"):
-            command.extend(["--add-data", "favicon.ico;.", "--icon", "favicon.ico"])
+    if platform.system() == "Windows" and os.path.exists("favicon.ico"):
+        command.extend(["--add-data", "favicon.ico;.", "--icon", "favicon.ico"])
 
     return command
 

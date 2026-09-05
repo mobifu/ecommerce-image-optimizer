@@ -107,16 +107,22 @@ Das fertige Paket wird im Ordner `dist_<timestamp>/` erstellt.
 
 ```bash
 # Automatisierte Tests ausführen
-pytest
+pytest -v
 
 # Testabdeckung analysieren
 pytest --cov=. --cov-report=term-missing
 
-# Sicherheitsprüfung (AppSec)
-bandit -r . -x ./sichern.py,./venv
-
-# Code-Style & Linter
+# Code-Style & Linter (inkl. Flake8-Simplify)
 ruff check .
+
+# Statische Typüberprüfung
+mypy main.py build.py
+
+# Sicherheitsprüfung des Codes (SAST)
+bandit -r main.py build.py -lll
+
+# Sicherheitsprüfung der Abhängigkeiten (SCA)
+pip-audit -r requirements.txt
 ```
 
 ---

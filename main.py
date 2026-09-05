@@ -526,13 +526,14 @@ class App(ctk.CTk):
         """
         print(f"Starte Aufgabe: {task_name} für Ordner '{input_folder}'")
 
-        if os.path.normpath(input_folder) == os.path.normpath(output_folder):
-            if not messagebox.askyesno(
-                "Warnung",
-                "Quell- und Zielordner sind identisch. Das wird Ihre Originaldateien überschreiben!\n\nMöchten Sie wirklich fortfahren?",
-            ):
-                print("Vorgang vom Benutzer abgebrochen.")
-                return
+        if os.path.normpath(input_folder) == os.path.normpath(
+            output_folder
+        ) and not messagebox.askyesno(
+            "Warnung",
+            "Quell- und Zielordner sind identisch. Das wird Ihre Originaldateien überschreiben!\n\nMöchten Sie wirklich fortfahren?",
+        ):
+            print("Vorgang vom Benutzer abgebrochen.")
+            return
 
         try:
             if not os.path.isdir(input_folder):
@@ -609,6 +610,8 @@ class App(ctk.CTk):
                 if should_resize:
                     img.thumbnail(max_size)
                 if filename.lower().endswith((".jpg", ".jpeg")):
+                    if img.mode in ("RGBA", "LA", "P"):
+                        img = img.convert("RGB")
                     img.save(
                         os.path.join(out_folder, filename),
                         "JPEG",
