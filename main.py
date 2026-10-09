@@ -1,8 +1,10 @@
+import contextlib
 import io
 import json
 import os
 import sys
 import threading
+import urllib.parse
 import webbrowser
 from datetime import date
 from pathlib import Path
@@ -21,6 +23,22 @@ except ImportError:
 
 # Decompression Bomb Schutz (120 Megapixel Limit)
 Image.MAX_IMAGE_PIXELS = 120_000_000
+
+
+def validate_dimensions(
+    width_val, height_val, min_dim: int = 1, max_dim: int = 16384
+) -> tuple[int, int]:
+    """Validiert Breiten- und Höhenangaben gegen ungültige Werte und Memory-Exhaustion."""
+    try:
+        width = int(width_val)
+        height = int(height_val)
+    except (ValueError, TypeError) as err:
+        raise ValueError("Bitte geben Sie für Breite und Höhe ganze Zahlen ein.") from err
+
+    if not (min_dim <= width <= max_dim and min_dim <= height <= max_dim):
+        raise ValueError(f"Abmessungen müssen zwischen {min_dim} und {max_dim} Pixeln liegen.")
+    return width, height
+
 
 # Konstanten für Pfade und Einstellungen (können später in GUI geändert werden)
 DEFAULT_INPUT_FOLDER = "Bilder_original"
@@ -148,8 +166,15 @@ class App(ctk.CTk):
         donate_label.bind("<Button-1>", lambda e: self.open_url(DONATE_URL))
 
     def open_url(self, url):
-        """Öffnet eine URL im Standard-Webbrowser."""
-        webbrowser.open_new(url)
+        """Öffnet eine validierte HTTP(S)-URL im Standard-Webbrowser."""
+        try:
+            parsed = urllib.parse.urlparse(url)
+            if parsed.scheme in ("http", "https") and parsed.netloc:
+                webbrowser.open_new(url)
+            else:
+                print(f"Ungültige oder abgewiesene URL: {url}")
+        except Exception as e:
+            print(f"Fehler beim Öffnen der URL {url}: {e}")
 
     def select_folder(self, entry_widget, info_label=None, file_types=None):
         """Öffnet einen Dialog zur Ordnerauswahl und trägt den Pfad in das Entry-Widget ein."""
@@ -202,7 +227,7 @@ class App(ctk.CTk):
             print(f"Fehler beim Erstellen der Thumbnails: {e}")
 
     def save_settings(self):
-        """Speichert die aktuellen Pfade und den API-Key sicher in einer JSON-Datei."""
+        """Speichert die aktuellen Pfade und den API-Key sicher und atomar in einer JSON-Datei."""
         settings = {
             "comp_source": self.comp_source_entry.get(),
             "comp_dest": self.comp_dest_entry.get(),
@@ -210,12 +235,22 @@ class App(ctk.CTk):
             "webp_dest": self.webp_dest_entry.get(),
             "tinypng_source": self.tinypng_source_entry.get(),
             "tinypng_dest": self.tinypng_dest_entry.get(),
-            "tinypng_api_key": self.tinypng_api_key_entry.get(),
+            "tinypng_api_key": self.tinypng_api_key_entry.get().strip(),
         }
         try:
             settings_path = Path("settings.json").resolve()
-            with open(settings_path, "w", encoding="utf-8") as f:
+            temp_path = settings_path.with_suffix(".json.tmp")
+            with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(settings, f, indent=4)
+                f.flush()
+                os.fsync(f.fileno())
+
+            # Auf POSIX-Systemen restriktive Zugriffsrechte vergeben
+            if hasattr(os, "chmod") and os.name != "nt":
+                with contextlib.suppress(OSError):
+                    os.chmod(temp_path, 0o600)
+
+            temp_path.replace(settings_path)
             print("Einstellungen gespeichert.")
         except Exception as e:
             print(f"Fehler beim Speichern der Einstellungen: {e}")
@@ -239,7 +274,8 @@ class App(ctk.CTk):
             self.tinypng_api_key_entry.delete(0, "end")
 
             # Bevorzuge Umgebungsvariablen falls gesetzt, sonst settings.json / Defaults
-            api_key = os.getenv("TINYPNG_API_KEY") or settings.get("tinypng_api_key", "")
+            raw_key = os.getenv("TINYPNG_API_KEY") or settings.get("tinypng_api_key", "")
+            api_key = raw_key.strip()
             comp_src = os.getenv("COMP_SOURCE_DIR") or settings.get(
                 "comp_source", DEFAULT_INPUT_FOLDER
             )
@@ -444,11 +480,11 @@ class App(ctk.CTk):
         # --- Threading-Wrapper für den Start (jetzt sind alle Widgets bekannt) ---
         def start_thread():
             try:
-                png_level = int(self.comp_png_level_entry.get())
-                quality = int(self.comp_quality_entry.get())  # Wert aus dem Entry-Feld nehmen
-                max_size = (
-                    int(self.comp_width_entry.get()),
-                    int(self.comp_height_entry.get()),
+                png_level = max(0, min(9, int(self.comp_png_level_entry.get())))
+                quality = max(0, min(100, int(self.comp_quality_entry.get())))
+                max_size = validate_dimensions(
+                    self.comp_width_entry.get(),
+                    self.comp_height_entry.get(),
                 )
                 threading.Thread(
                     target=self.run_compression,
@@ -462,10 +498,10 @@ class App(ctk.CTk):
                     ),
                     daemon=True,
                 ).start()
-            except ValueError:
+            except ValueError as err:
                 messagebox.showerror(
                     "Ungültige Eingabe",
-                    "Bitte geben Sie für Breite und Höhe nur ganze Zahlen ein.",
+                    str(err),
                 )
 
         # --- Start Button ---
@@ -526,9 +562,10 @@ class App(ctk.CTk):
         """
         print(f"Starte Aufgabe: {task_name} für Ordner '{input_folder}'")
 
-        if os.path.normpath(input_folder) == os.path.normpath(
-            output_folder
-        ) and not messagebox.askyesno(
+        in_resolved = Path(input_folder).resolve()
+        out_resolved = Path(output_folder).resolve()
+
+        if in_resolved == out_resolved and not messagebox.askyesno(
             "Warnung",
             "Quell- und Zielordner sind identisch. Das wird Ihre Originaldateien überschreiben!\n\nMöchten Sie wirklich fortfahren?",
         ):
@@ -536,20 +573,19 @@ class App(ctk.CTk):
             return
 
         try:
-            if not os.path.isdir(input_folder):
+            if not in_resolved.is_dir():
                 self.after(
                     0,
                     lambda: messagebox.showerror(
                         "Fehler",
-                        f"Der Quellordner wurde nicht gefunden:\n{input_folder}",
+                        f"Der Quellordner wurde nicht gefunden:\n{in_resolved}",
                     ),
                 )
                 return
 
-            if not os.path.exists(output_folder):
-                os.makedirs(output_folder)
+            out_resolved.mkdir(parents=True, exist_ok=True)
 
-            files = [f for f in os.listdir(input_folder) if f.lower().endswith(file_types)]
+            files = [f for f in os.listdir(in_resolved) if f.lower().endswith(file_types)]
             if not files:
                 self.after(
                     0,
@@ -566,7 +602,7 @@ class App(ctk.CTk):
             for i, filename in enumerate(files):
                 try:
                     # Die eigentliche Verarbeitungslogik wird hier aufgerufen
-                    process_function(filename, input_folder, output_folder)
+                    process_function(filename, str(in_resolved), str(out_resolved))
                 except Exception as e:
                     print(f"Fehler bei der Verarbeitung von {filename}: {e}")
                     # Bei TinyPNG-Fehlern, die eine Messagebox zeigen, hier abbrechen
@@ -604,29 +640,32 @@ class App(ctk.CTk):
             print(f"Größenanpassung aktiviert. Maximale Größe: {max_size[0]}x{max_size[1]} Pixel.")
 
         def process(filename, in_folder, out_folder):
-            img_path = os.path.join(in_folder, filename)
+            safe_filename = Path(filename).name
+            img_path = (Path(in_folder).resolve() / safe_filename).resolve()
+            dest_path = (Path(out_folder).resolve() / safe_filename).resolve()
+
             with Image.open(img_path) as img:
                 img = ImageOps.exif_transpose(img)  # EXIF-Drehung anwenden
                 if should_resize:
                     img.thumbnail(max_size)
-                if filename.lower().endswith((".jpg", ".jpeg")):
+                if safe_filename.lower().endswith((".jpg", ".jpeg")):
                     if img.mode in ("RGBA", "LA", "P"):
                         img = img.convert("RGB")
                     img.save(
-                        os.path.join(out_folder, filename),
+                        dest_path,
                         "JPEG",
                         quality=quality,
                         optimize=True,
                     )
-                    print(f"Komprimiert (JPG): {filename}")
-                elif filename.lower().endswith(".png"):
+                    print(f"Komprimiert (JPG): {safe_filename}")
+                elif safe_filename.lower().endswith(".png"):
                     img.save(
-                        os.path.join(out_folder, filename),
+                        dest_path,
                         "PNG",
                         optimize=True,
                         compress_level=png_level,
                     )
-                    print(f"Komprimiert (PNG): {filename}")
+                    print(f"Komprimiert (PNG): {safe_filename}")
 
         self._run_image_processing(
             "Lokale Komprimierung",
@@ -685,10 +724,10 @@ class App(ctk.CTk):
         # --- Threading-Wrapper für den Start ---
         def start_thread():
             try:
-                quality = int(self.webp_quality_entry.get())  # Wert aus dem Entry-Feld nehmen
-                max_size = (
-                    int(self.webp_width_entry.get()),
-                    int(self.webp_height_entry.get()),
+                quality = max(0, min(100, int(self.webp_quality_entry.get())))
+                max_size = validate_dimensions(
+                    self.webp_width_entry.get(),
+                    self.webp_height_entry.get(),
                 )
                 threading.Thread(
                     target=self.run_webp_conversion,
@@ -701,10 +740,10 @@ class App(ctk.CTk):
                     ),
                     daemon=True,
                 ).start()
-            except ValueError:
+            except ValueError as err:
                 messagebox.showerror(
                     "Ungültige Eingabe",
-                    "Bitte geben Sie für Breite und Höhe nur ganze Zahlen ein.",
+                    str(err),
                 )
 
         # --- Start Button ---
@@ -737,14 +776,17 @@ class App(ctk.CTk):
             print(f"Größenanpassung aktiviert. Maximale Größe: {max_size[0]}x{max_size[1]} Pixel.")
 
         def process(filename, in_folder, out_folder):
-            file_path = os.path.join(in_folder, filename)
+            safe_filename = Path(filename).name
+            file_path = (Path(in_folder).resolve() / safe_filename).resolve()
+            output_file_path = (
+                Path(out_folder).resolve() / f"{Path(safe_filename).stem}.webp"
+            ).resolve()
             with Image.open(file_path) as img:
                 img = ImageOps.exif_transpose(img)  # EXIF-Drehung anwenden
                 if should_resize:
                     img.thumbnail(max_size)
-                output_file_path = os.path.join(out_folder, f"{os.path.splitext(filename)[0]}.webp")
                 img.save(output_file_path, "WEBP", quality=quality)
-                print(f"Konvertiert: {filename} -> {os.path.basename(output_file_path)}")
+                print(f"Konvertiert: {safe_filename} -> {os.path.basename(output_file_path)}")
 
         self._run_image_processing(
             "WebP Konvertierung",
@@ -785,14 +827,14 @@ class App(ctk.CTk):
 
         # --- Start Button ---
         def start_thread():
-            api_key = self.tinypng_api_key_entry.get()
+            api_key = self.tinypng_api_key_entry.get().strip()
             if not api_key:
                 messagebox.showerror("Fehler", "Bitte gib einen TinyPNG API-Key ein.")
                 return
             try:
-                max_size = (
-                    int(self.tinypng_width_entry.get()),
-                    int(self.tinypng_height_entry.get()),
+                max_size = validate_dimensions(
+                    self.tinypng_width_entry.get(),
+                    self.tinypng_height_entry.get(),
                 )
                 self.start_tinypng_thread(
                     api_key,
@@ -801,10 +843,10 @@ class App(ctk.CTk):
                     self.tinypng_resize_check.get(),
                     max_size,
                 )
-            except ValueError:
+            except ValueError as err:
                 messagebox.showerror(
                     "Ungültige Eingabe",
-                    "Bitte geben Sie für Breite und Höhe nur ganze Zahlen ein.",
+                    str(err),
                 )
 
         ctk.CTkButton(tab, text="Mit TinyPNG komprimieren", command=start_thread).pack(
@@ -816,7 +858,7 @@ class App(ctk.CTk):
         # Die Verarbeitung wird in einem neuen Thread gestartet
         thread = threading.Thread(
             target=self.run_tinypng_compression,
-            args=(api_key, input_folder, output_folder, should_resize, max_size),
+            args=(api_key.strip(), input_folder, output_folder, should_resize, max_size),
             daemon=True,
         )
         thread.start()
@@ -825,8 +867,9 @@ class App(ctk.CTk):
         self, api_key, input_folder, output_folder, should_resize, max_size
     ):
         """Führt die Logik aus tinypng-kompress.py aus."""
+        cleaned_key = api_key.strip()
         try:
-            tinify.key = api_key
+            tinify.key = cleaned_key
             tinify.validate()
             print("TinyPNG API-Key ist gültig.")
         except tinify.Error as e:
@@ -845,9 +888,10 @@ class App(ctk.CTk):
             )
 
         def process(filename, in_folder, out_folder):
-            input_path = os.path.join(in_folder, filename)
-            output_path = os.path.join(out_folder, filename)
-            print(f"Komprimiere: {filename} ...")
+            safe_filename = Path(filename).name
+            input_path = (Path(in_folder).resolve() / safe_filename).resolve()
+            output_path = (Path(out_folder).resolve() / safe_filename).resolve()
+            print(f"Komprimiere: {safe_filename} ...")
 
             # Bild mit Pillow öffnen, um EXIF-Drehung anzuwenden, und in einem Puffer speichern
             with Image.open(input_path) as img:
@@ -855,7 +899,7 @@ class App(ctk.CTk):
 
                 # Das Format (JPEG/PNG) für die Speicherung im Puffer beibehalten
                 img_format = img.format or (
-                    "JPEG" if filename.lower().endswith((".jpg", ".jpeg")) else "PNG"
+                    "JPEG" if safe_filename.lower().endswith((".jpg", ".jpeg")) else "PNG"
                 )
 
                 buffer = io.BytesIO()
@@ -866,16 +910,16 @@ class App(ctk.CTk):
             try:
                 if should_resize:
                     resized = source.resize(method="fit", width=max_size[0], height=max_size[1])
-                    resized.to_file(output_path)
+                    resized.to_file(str(output_path))
                 else:
-                    source.to_file(output_path)
-                print(f"Fertig: {filename} gespeichert in {out_folder}")
+                    source.to_file(str(output_path))
+                print(f"Fertig: {safe_filename} gespeichert in {out_folder}")
             except tinify.Error as e:
                 self.after(
                     0,
                     lambda err=e: messagebox.showwarning(
                         "TinyPNG Fehler",
-                        f"Fehler bei '{filename}' (evtl. Monatslimit erreicht?):\n{err}",
+                        f"Fehler bei '{safe_filename}' (evtl. Monatslimit erreicht?):\n{err}",
                     ),
                 )
                 raise e  # Wirft den Fehler erneut, damit die Hauptschleife ihn fangen und abbrechen kann

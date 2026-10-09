@@ -1,10 +1,14 @@
 import json
+import zipfile
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
 from PIL import Image
 
+import build
 import main
+import sichern
 
 
 def test_gitignore_ignores_sensitive_files():
@@ -103,3 +107,78 @@ def test_decompression_bomb_caught_in_batch(tmp_path):
         process_function=mock_bomb_process,
         show_completion_message=False,
     )
+
+
+def test_validate_dimensions():
+    """Testet die Validierung von Bildabmessungen gegen ungültige Werte."""
+    # Gültige Werte
+    assert main.validate_dimensions("800", "600") == (800, 600)
+    assert main.validate_dimensions(1920, 1080) == (1920, 1080)
+
+    # Ungültige Werte (Bereichsüberschreitung oder Typfehler)
+    with pytest.raises(ValueError):
+        main.validate_dimensions("0", "100")
+
+    with pytest.raises(ValueError):
+        main.validate_dimensions("-50", "100")
+
+    with pytest.raises(ValueError):
+        main.validate_dimensions("20000", "100")
+
+    with pytest.raises(ValueError):
+        main.validate_dimensions("abc", "100")
+
+
+def test_open_url_validation():
+    """Stellt sicher, dass nur HTTP/HTTPS-URLs im Browser geöffnet werden."""
+    app = MagicMock(spec=main.App)
+
+    with patch("webbrowser.open_new") as mock_open:
+        main.App.open_url(app, "https://www.agentur-schoelzke.de")
+        mock_open.assert_called_once_with("https://www.agentur-schoelzke.de")
+
+    with patch("webbrowser.open_new") as mock_open:
+        main.App.open_url(app, "file:///C:/Windows/System32/cmd.exe")
+        mock_open.assert_not_called()
+
+    with patch("webbrowser.open_new") as mock_open:
+        main.App.open_url(app, "javascript:alert(1)")
+        mock_open.assert_not_called()
+
+
+def test_backup_security_exclusions(tmp_path):
+    """Testet, dass sichern.py sensible Dateien und Secrets strikt ausschließt."""
+    assert sichern.is_sensitive_or_excluded_file(".env")
+    assert sichern.is_sensitive_or_excluded_file(".env.local")
+    assert sichern.is_sensitive_or_excluded_file("settings.json")
+    assert sichern.is_sensitive_or_excluded_file("settings.json.tmp")
+    assert sichern.is_sensitive_or_excluded_file("secret.key")
+    assert sichern.is_sensitive_or_excluded_file("server.pem")
+    assert not sichern.is_sensitive_or_excluded_file("main.py")
+
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+    (src_dir / "main.py").write_text("print('hello')", encoding="utf-8")
+    (src_dir / ".env").write_text("SECRET=123", encoding="utf-8")
+    (src_dir / "settings.json").write_text("{}", encoding="utf-8")
+
+    backup_dest = tmp_path / "backups"
+    zip_path = sichern.create_backup(source_dir=src_dir, backup_base_dir=backup_dest)
+
+    assert zip_path.exists()
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        namelist = zf.namelist()
+        assert "main.py" in namelist
+        assert ".env" not in namelist
+        assert "settings.json" not in namelist
+
+
+def test_kill_process_rejects_malicious_names():
+    """Testet, dass ungültige Prozessnamen abgewiesen werden."""
+    with patch("subprocess.run") as mock_run:
+        build.kill_process_if_running("app; rm -rf /")
+        mock_run.assert_not_called()
+
+    with patch("subprocess.run") as mock_run:
+        build.kill_process_if_running("valid_app_name-123")
+        mock_run.assert_called_once()

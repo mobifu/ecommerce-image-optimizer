@@ -2,6 +2,7 @@ import argparse  # NEU: Für Kommandozeilen-Argumente
 import logging
 import os
 import platform
+import re
 import shutil
 import subprocess
 import time
@@ -61,6 +62,10 @@ def create_cython_extensions(python_files):
 # Funktion zum Beenden eines laufenden Prozesses (Windows-spezifisch)
 def kill_process_if_running(process_name):
     """Versucht, einen Prozess anhand seines Namens zu beenden (plattformunabhängig)."""
+    if not isinstance(process_name, str) or not re.match(r"^[a-zA-Z0-9_\-]+$", process_name):
+        logging.warning(f"Ungültiger Prozessname '{process_name}' abgewiesen.")
+        return
+
     system = platform.system()
     if system == "Windows":
         # Windows verwendet .exe und taskkill

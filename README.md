@@ -129,9 +129,11 @@ pip-audit -r requirements.txt
 
 ## 🔒 Sicherheitsmerkmale
 
-- **Zero Secret Leaks:** Keine hardcodierten Zugangsdaten; strikte Isolation lokaler Einstellungen via `.gitignore`.
-- **DoS- & Decompression-Schutz:** Konfigurierte Obergrenzen für Pixeldimensionen (`Image.MAX_IMAGE_PIXELS = 120_000_000`).
-- **Pfadsicherheit:** Verwendung von `pathlib.Path.resolve()` zur Verhinderung von Path-Traversal-Angriffen.
+- **Zero Secret Leaks:** Keine hardcodierten Zugangsdaten; strikte Isolation lokaler Einstellungen (`settings.json`, `.env`) via `.gitignore` und automatischer Ausschluss in `sichern.py`.
+- **DoS- & Decompression-Schutz:** Konfigurierte Obergrenzen für Pixeldimensionen (`Image.MAX_IMAGE_PIXELS = 120_000_000`) sowie Bereichsvalidierung (`1` bis `16.384` px).
+- **Pfadsicherheit & Path-Traversal-Schutz:** Strikte Pfadauflösung via `pathlib.Path.resolve()` und Isolierung von Dateinamen (`Path(filename).name`).
+- **Atomare Dateispeicherung:** `settings.json` wird über temporäre Swap-Dateien mit `fsync` atomar geschrieben und mit restriktiven Dateiberechtigungen geschützt.
+- **URL- & Command-Sanitization:** Browser-Aufrufe sind auf sichere HTTP(S)-Schemata beschränkt; Prozessbeendigung in `build.py` ist gegen Befehlsinjektionen abgesichert.
 
 ---
 
