@@ -8,7 +8,6 @@ from PIL import Image
 
 import build
 import main
-import sichern
 
 
 def test_gitignore_ignores_sensitive_files():
@@ -147,7 +146,8 @@ def test_open_url_validation():
 
 
 def test_backup_security_exclusions(tmp_path):
-    """Testet, dass sichern.py sensible Dateien und Secrets strikt ausschließt."""
+    """Testet, dass sichern.py sensible Dateien und Secrets strikt ausschließt (sofern lokal vorhanden)."""
+    sichern = pytest.importorskip("sichern", reason="sichern.py ist ein lokales Wartungsskript")
     assert sichern.is_sensitive_or_excluded_file(".env")
     assert sichern.is_sensitive_or_excluded_file(".env.local")
     assert sichern.is_sensitive_or_excluded_file("settings.json")
