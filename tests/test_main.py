@@ -383,3 +383,119 @@ def test_update_png_and_webp_slider_bounds():
     app.webp_quality_entry.get.return_value = "150"
     main.App.update_webp_quality_from_entry(app, None)
     app.webp_quality_slider.set.assert_called_with(100)
+
+
+def test_sync_slider_and_entry_helpers():
+    """Testet die isolierten Slider- und Entry-Synchronisationshelfer."""
+    entry = MagicMock()
+    slider = MagicMock()
+
+    main.sync_slider_to_entry(entry, 42.7)
+    entry.delete.assert_called_with(0, "end")
+    entry.insert.assert_called_with(0, "42")
+
+    # Clamping unter Min-Wert
+    entry.get.return_value = "-10"
+    main.sync_entry_to_slider(entry, slider, 0, 100)
+    slider.set.assert_called_with(0)
+
+    # Clamping über Max-Wert
+    entry.get.return_value = "999"
+    main.sync_entry_to_slider(entry, slider, 0, 100)
+    slider.set.assert_called_with(100)
+
+    # Ungültige Eingabe
+    entry.get.return_value = "ungueltig"
+    slider.reset_mock()
+    main.sync_entry_to_slider(entry, slider, 0, 100)
+    slider.set.assert_not_called()
+
+
+def test_settings_core_functions(tmp_path):
+    """Testet save_settings_file, load_settings_file und get_merged_settings direkt."""
+    target_file = tmp_path / "custom_settings.json"
+    data = {"comp_source": "test_src", "tinypng_api_key": "secret"}
+
+    main.save_settings_file(data, target_file)
+    assert target_file.exists()
+
+    loaded = main.load_settings_file(target_file)
+    assert loaded == data
+
+    merged = main.get_merged_settings(target_file)
+    assert merged["comp_source"] == "test_src"
+    assert merged["tinypng_api_key"] == "secret"
+    assert merged["webp_dest"] == "Bilder_webp"
+
+
+def test_compress_image_file_direct(tmp_path):
+    """Testet compress_image_file direkt ohne GUI-Mocking."""
+    src_jpg = tmp_path / "in.jpg"
+    dest_jpg = tmp_path / "out.jpg"
+    src_png = tmp_path / "in.png"
+    dest_png = tmp_path / "out.png"
+
+    Image.new("RGB", (200, 200), color="blue").save(src_jpg)
+    Image.new("RGBA", (200, 200), color="green").save(src_png)
+
+    main.compress_image_file(
+        source_path=src_jpg,
+        dest_path=dest_jpg,
+        quality=70,
+        png_level=6,
+        should_resize=True,
+        max_size=(80, 80),
+    )
+    assert dest_jpg.exists()
+    with Image.open(dest_jpg) as img:
+        assert max(img.size) <= 80
+
+    main.compress_image_file(
+        source_path=src_png,
+        dest_path=dest_png,
+        quality=70,
+        png_level=3,
+        should_resize=False,
+        max_size=(80, 80),
+    )
+    assert dest_png.exists()
+
+
+def test_convert_image_to_webp_direct(tmp_path):
+    """Testet convert_image_to_webp direkt."""
+    src_png = tmp_path / "in.png"
+    dest_webp = tmp_path / "out.webp"
+
+    Image.new("RGB", (150, 150), color="purple").save(src_png)
+
+    main.convert_image_to_webp(
+        source_path=src_png,
+        dest_path=dest_webp,
+        quality=85,
+        should_resize=True,
+        max_size=(75, 75),
+    )
+    assert dest_webp.exists()
+    with Image.open(dest_webp) as img:
+        assert img.format == "WEBP"
+        assert max(img.size) <= 75
+
+
+@patch("main.tinify")
+def test_compress_image_tinypng_direct(mock_tinify, tmp_path):
+    """Testet compress_image_tinypng direkt."""
+    src_jpg = tmp_path / "photo.jpg"
+    dest_jpg = tmp_path / "photo_tiny.jpg"
+    Image.new("RGB", (100, 100), color="red").save(src_jpg)
+
+    mock_source = MagicMock()
+    mock_tinify.from_buffer.return_value = mock_source
+
+    main.compress_image_tinypng(
+        source_path=src_jpg,
+        dest_path=dest_jpg,
+        should_resize=True,
+        max_size=(50, 50),
+    )
+    mock_tinify.from_buffer.assert_called_once()
+    mock_source.resize.assert_called_once_with(method="fit", width=50, height=50)

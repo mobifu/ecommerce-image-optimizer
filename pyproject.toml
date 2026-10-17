@@ -8,6 +8,7 @@ exclude = [
     "build",
     "build_temp_*",
     "dist_*",
+    "pytest_tmp",
     "sichern.py"
 ]
 

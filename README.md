@@ -38,6 +38,14 @@
 | **WebP Konvertierung** | `.png`, `.jpg`, `.jpeg` | Konvertierung mit Qualitätsregler und optionaler Maximalauflösung |
 | **TinyPNG Cloud** | `.png`, `.jpg`, `.jpeg` | Cloud-Kompression über offizielle TinyPNG-API mit automatischer Validierung |
 
+### 🧩 Modulare Softwarearchitektur
+
+Die Kernfunktionalität in `main.py` ist sauber zwischen GUI (CustomTkinter) und zustandsloser Domain-/Verarbeitungslogik getrennt:
+- **Kernverarbeitung (GUI-unabhängig):** `compress_image_file`, `convert_image_to_webp`, `compress_image_tinypng`
+- **Konfigurationsmanagement:** Atomares Speichern (`save_settings_file`), sicheres Auslesen (`load_settings_file`) und Zusammenführen von `.env`- und JSON-Werten (`get_merged_settings`)
+- **GUI-Steuerung & Reaktivität:** Generische Steuerelement-Generatoren (`create_slider_row`), bidirektionale Slider-Entry-Synchronisation (`sync_slider_to_entry`, `sync_entry_to_slider`) und dynamisches Tab-Mapping
+
+
 ---
 
 ## 🚀 Schnelleinstieg

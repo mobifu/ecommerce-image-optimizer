@@ -28,6 +28,7 @@ env/
 htmlcov/
 .pytest_cache/
 .ruff_cache/
+pytest_tmp/
 
 # OS-spezifische Dateien
 Thumbs.db
